@@ -12,6 +12,14 @@ from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 
 logger = logging.getLogger(__name__)
 
+DEVICE_ICONS = {
+    'headphones': 'images/headphones.png',
+    'keyboard': 'images/keyboard.png',
+    'mouse': 'images/mouse.png',
+    'gamepad': 'images/gamepad.png',
+    'phone': 'images/phone.png',
+    'default': 'images/bluetooth.png'
+}
 
 class BluetoothQC(Extension):
 
@@ -19,7 +27,6 @@ class BluetoothQC(Extension):
         super(BluetoothQC, self).__init__()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
         self.subscribe(ItemEnterEvent, ItemEnterEventListener())
-
 
 class KeywordQueryEventListener(EventListener):
 
@@ -33,7 +40,7 @@ class KeywordQueryEventListener(EventListener):
             device_list = extension.preferences['device_list'].split(',')
             for d in device_list:
                 if len(d) > 18:
-                    devices[d.strip()[0:-18]] = d[-17:]
+                    devices[d[-(len(d)-18):].strip()] = d.strip()[0:18], d[-(len(d)-18):].strip().split(' ')[0]
 
             # giv user feedback if no devices has been specified
             if len(devices) == 0:
@@ -46,17 +53,17 @@ class KeywordQueryEventListener(EventListener):
         # connect options
         for i in range(len(devices)):
             key = list(devices.keys())[i]
-            data = 'connect ' + devices[key]
-            items.append(ExtensionResultItem(icon='images/connect.png',
-                                             name="Connect to %s" % key,
+            data = 'connect ' + devices[key][0]
+            items.append(ExtensionResultItem(icon=f'images/{devices[key][1] if devices[key][1] in DEVICE_ICONS else 'connect'}.png',
+                                             name="Connect to %s" % key.split(' ', 1)[1] if devices[key][1] in DEVICE_ICONS else "Connect to %s" % key,
                                              on_enter=ExtensionCustomAction(data, keep_app_open=True)))
 
         # disconnect options
         for i in range(len(devices)):
             key = list(devices.keys())[i]
-            data = 'disconnect ' + devices[key]
-            items.append(ExtensionResultItem(icon='images/disconnect.png',
-                                             name="Disconnect from %s" % key,
+            data = 'disconnect ' + devices[key][0]
+            items.append(ExtensionResultItem(icon=f'images/{devices[key][1] + '_disconnect' if devices[key][1] in DEVICE_ICONS else 'disconnect'}.png',
+                                             name="Disconnect from %s" % key.split(' ', 1)[1] if devices[key][1] in DEVICE_ICONS else "Disconnect from %s" % key,
                                              on_enter=ExtensionCustomAction(data, keep_app_open=True)))
 
         return RenderResultListAction(items)
