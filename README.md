@@ -34,6 +34,6 @@ Find information about downloading it here: https://command-not-found.com/blueto
 
 Diff to parent:
 
-Multiple icons support
-Sort with rapidfuzz
-Different Icons (Preferably done by myself, did not do more than the connect and disconnect till now, may add temporary icons from the web)
+- Multiple icons support
+- Sort with rapidfuzz
+- Different Icons (Preferably done by myself, did not do more than the connect and disconnect till now, may add temporary icons from the web)
