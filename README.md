@@ -17,9 +17,17 @@ Change the keyword in under *Bluetooth manager Keyword*
 
 Add your devices in the *Device list*. The format is as follows:
 ```python
-headset A1:A2:17:6E:87:C1, Keyboard A1:A2:90:19:04:2D
+A1:A2:17:6E:87:C1 <device-type> <device-name>, A1:A2:90:19:04:2D <device-type> <device-name>
 ```
 You can find your devices mac address in the bluetooth settings or with the command `bluetoothctl scan on`
+
+device-types:
+- headphones
+- keyboard
+- mouse
+- gamepad 
+- phone
+- default
 
 **N.B.** this extension uses `bluetoothctl` to connect to your devices. 
 Find information about downloading it here: https://command-not-found.com/bluetoothctl
