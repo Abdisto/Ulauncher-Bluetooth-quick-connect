@@ -12,14 +12,14 @@ from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 
 logger = logging.getLogger(__name__)
 
-DEVICE_ICONS = {
-    'headphones': 'images/headphones.png',
-    'keyboard': 'images/keyboard.png',
-    'mouse': 'images/mouse.png',
-    'gamepad': 'images/gamepad.png',
-    'phone': 'images/phone.png',
-    'default': 'images/bluetooth.png'
-}
+DEVICE_ICONS = [
+    'headphones', 
+    'keyboard', 
+    'mouse', 
+    'gamepad', 
+    'phone', 
+    'default'
+]
 
 class BluetoothQC(Extension):
 
