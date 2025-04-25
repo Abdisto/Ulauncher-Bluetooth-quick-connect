@@ -19,7 +19,7 @@
       "id": "device_list",
       "type": "input",
       "name": "Device list",
-      "description": "List of device nick name and mac address. Format: \"name one 00:11:22:33:44:55, name two 11:11:11:11:11\"",
+      "description": "List of device nick name and mac address. Format: \"00:11:22:33:44:55 <device-type> name one , 11:11:11:11:11 <device-type> name two \"",
       "default_value": ""
     }
   ]
