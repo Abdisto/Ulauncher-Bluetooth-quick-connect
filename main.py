@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from rapidfuzz import process
 from time import sleep
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
@@ -33,6 +34,7 @@ class KeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
         items = []
         devices = {}
+        query = event.get_argument()
         logger.info('preferences %s' % json.dumps(extension.preferences))
 
         # get devices from preferences
@@ -42,13 +44,19 @@ class KeywordQueryEventListener(EventListener):
                 if len(d) > 18:
                     devices[d[-(len(d)-18):].strip()] = d.strip()[0:18], d[-(len(d)-18):].strip().split(' ')[0]
 
-            # giv user feedback if no devices has been specified
+            # give user feedback if no devices has been specified
             if len(devices) == 0:
                 items.append(ExtensionResultItem(icon='images/disconnect.png',
                                                  name="No devices specified",
                                                  description="Add them in settings->extentions->BT_manager->device list",
                                                  on_enter=ExtensionCustomAction("none", keep_app_open=True)))
                 return RenderResultListAction(items)
+
+        sorted_keys = process.extract(query, devices.keys(), limit=None)
+        sorted_devices = {k: devices[k] for k, score, _ in sorted_keys}
+
+        if sorted_devices != {}:
+            devices = sorted_devices
 
         # connect options
         for i in range(len(devices)):
