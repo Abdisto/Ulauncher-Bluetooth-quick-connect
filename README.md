@@ -35,5 +35,8 @@ Find information about downloading it here: https://command-not-found.com/blueto
 Diff to parent:
 
 - Multiple icons support
-- Sort with rapidfuzz (Can be improved with sorting the keyword even earlier to filter by connect/disconnet)
+- Sort with rapidfuzz (Can be improved with sorting the keyword even earlier to filter by connect/disconnect)
 - Different Icons (Preferably done by myself, did not do more than the connect and disconnect till now, may add temporary icons from the web)
+
+What's gonna happen:
+Prob. gonna use bluetoothctl's function in the future. devices Paired | devices Connected -> Paired - Connected -> not_connected. Offer the connection to these devices and disconnect from the connected devices -> info MAC from devices paired / not paired, and get the device type -> set icon. Fuzzy finding with rapidfuzz gonna be simpler since not two unpaired for loops with appending to me unknown class, thus gonna have one list with all options and sorting first by action and then by user input
