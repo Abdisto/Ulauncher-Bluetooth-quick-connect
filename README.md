@@ -15,19 +15,16 @@ This extension is listed on the Ulauncher extensions page.
 
 Change the keyword under *Bluetooth manager Keyword*
 
-Add your devices to the *Device list*. The format is as follows:
-```python
-A1:A2:17:6E:87:C1 <device-type> <device-name>, A1:A2:90:19:04:2D <device-type> <device-name>
-```
-You can find your devices MAC address in the Bluetooth settings or with the command `bluetoothctl scan on`
-
 device-types:
 - headphones
 - keyboard
 - mouse
-- gamepad 
+- __gamepad__ (*)
 - phone
 - default
+  
+* __BOLD__ are these that have new icons and don't use the default bluetooth icon
+
 
 **N.B.** This extension uses `bluetoothctl` to connect to your devices. 
 Find information about downloading it here: https://command-not-found.com/bluetoothctl
@@ -35,8 +32,9 @@ Find information about downloading it here: https://command-not-found.com/blueto
 Diff to parent:
 
 - Multiple icons support
-- Sort with rapidfuzz (Can be improved with sorting the keyword even earlier to filter by connect/disconnect)
+- Sort with rapidfuzz
 - Different Icons (Preferably done by myself, did not do more than the connect and disconnect till now, may add temporary icons from the web)
 
 What's gonna happen:
-Prob. gonna use bluetoothctl's function in the future. devices Paired | devices Connected -> Paired - Connected -> not_connected. Offer the connection to these devices and disconnect from the connected devices -> info MAC from devices paired / not paired, and get the device type -> set icon. Fuzzy finding with rapidfuzz gonna be simpler since not two unpaired for loops with appending to me unknown class, thus gonna have one list with all options and sorting first by action and then by user input
+- ~~Prob. gonna use bluetoothctl's function in the future. devices Paired | devices Connected -> Paired - Connected -> not_connected. Offer the connection to these devices and disconnect from the connected devices -> info MAC from devices paired / not paired, and get the device type -> set icon. Fuzzy finding with rapidfuzz gonna be simpler since not two unpaired for loops with appending to me unknown class, thus gonna have one list with all options and sorting first by action and then by user input~~(Already done)
+- Updating to the API 3.0 for ulauncher v.6 as soon as stable
