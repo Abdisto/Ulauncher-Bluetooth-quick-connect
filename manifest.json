@@ -14,13 +14,6 @@
       "name": "Bluetooth manager",
       "description": "Quickly connect to predefined bluetooth devices",
       "default_value": "bt"
-    },
-    {
-      "id": "device_list",
-      "type": "input",
-      "name": "Device list",
-      "description": "List of device nick name and mac address. Format: \"00:11:22:33:44:55 <device-type> name one , 11:11:11:11:11 <device-type> name two \"",
-      "default_value": ""
     }
   ]
 }
