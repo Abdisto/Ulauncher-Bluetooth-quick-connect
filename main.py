@@ -1,11 +1,9 @@
+import os
 import json
 import logging
-import os
 import subprocess
-
 from rapidfuzz import process
-from ulauncher.api import Extension, Result
-from ulauncher.api.actions import RunScriptAction, ExtensionCustomAction, HideWindowAction
+from ulauncher.api import Extension, Result, Action
 
 logger = logging.getLogger(__name__)
 
@@ -14,88 +12,73 @@ DEVICE_ICONS = {
 }
 
 class BluetoothQC(Extension):
-    def __init__(self):
-        super().__init__()
-
     def on_input(self, input_text: str, trigger_id: str):
         items = []
         devices = {}
 
-        bluetooth_list = subprocess.check_output(
-            "bash -c 'timeout 5s bluetoothctl devices Paired'",
-            shell=True,
-            text=True
-        )
-        connected_device_list = subprocess.check_output(
-            "bash -c 'timeout 5s bluetoothctl devices Connected'",
-            shell=True,
-            text=True
-        )
+        bluetooth_list = subprocess.getoutput("timeout 5s bluetoothctl devices Paired")
+        connected_device_list = subprocess.getoutput("timeout 5s bluetoothctl devices Connected")
 
         for device in bluetooth_list.strip().splitlines():
-            device_name = ' '.join(device.split(' ')[2:]).capitalize()
-            device_mac = device.split(' ')[1]
-            try:
-                device_type = subprocess.check_output(
-                    f"bash -c 'timeout 5s bluetoothctl info {device_mac}' | grep Icon:",
-                    shell=True,
-                    text=True
-                ).split(':')[1].strip()
-            except Exception:
-                device_type = 'unknown'
+            parts = device.strip().split(' ')
+            if len(parts) < 3:
+                continue
+            device_mac = parts[1]
+            device_name = ' '.join(parts[2:]).capitalize()
 
-            is_connected = device in connected_device_list
-            action_label = 'Select to Disconnect' if is_connected else 'Select to Connect'
-            devices[device_name] = (device_mac, device_type, action_label)
+            try:
+                device_info = subprocess.getoutput(f"timeout 5s bluetoothctl info {device_mac}")
+                device_type_line = next((line for line in device_info.splitlines() if "Icon:" in line), None)
+                device_type = device_type_line.split(':', 1)[1].strip() if device_type_line else "unknown"
+            except Exception as e:
+                logger.error(f"Error getting info for {device_mac}: {e}")
+                device_type = "unknown"
+
+            is_connected = device_mac in connected_device_list
+            state = 'Select to Disconnect' if is_connected else 'Select to Connect'
+            devices[device_name] = (device_mac, device_type, state)
 
         if not devices:
             return [
                 Result(
-                    icon='images/disconnect.png',
                     name="No devices found",
                     description="Either bluetoothctl is missing or you haven't connected any devices yet",
-                    on_enter=ExtensionCustomAction("none", keep_app_open=True)
+                    icon="images/disconnect.png",
+                    on_enter=Action("none", keep_app_open=True)
                 )
             ]
 
-        # Use fuzzy search
         sorted_keys = process.extract(input_text, devices.keys(), limit=None)
-        sorted_devices = {k: devices[k] for k, score, _ in sorted_keys}
+        sorted_devices = {k: devices[k] for k, _, _ in sorted_keys} if sorted_keys else devices
 
-        results = []
-        for key, (mac, dev_type, label) in sorted_devices.items():
-            action = 'disconnect' if 'Disconnect' in label else 'connect'
-            data = f"{action} {mac}"
-
-            icon_name = DEVICE_ICONS.get(dev_type, "disconnect" if action == 'disconnect' else "connect")
-            if action == 'disconnect' and icon_name != "disconnect":
-                icon_name += "_disconnect"
-
-            results.append(Result(
-                icon=f'images/{icon_name}.png',
-                name=f"{key} | {label}",
+        for name, (mac, dev_type, action_label) in sorted_devices.items():
+            action_cmd = f"{'connect' if 'Connect' in action_label else 'disconnect'} {mac}"
+            icon_base = DEVICE_ICONS.get(dev_type, "connect" if 'Connect' in action_label else "disconnect")
+            icon = f"{icon_base}.png" if 'Connect' in action_label else f"{icon_base}_disconnect.png"
+            items.append(Result(
+                name=f"{name} | {action_label}",
                 description=mac,
-                on_enter=ExtensionCustomAction(data, keep_app_open=True)
+                icon=f"images/{icon}",
+                on_enter=Action(action_cmd, keep_app_open=True)
             ))
 
-        return results
+        return items
 
     def on_item_enter(self, data):
         if data == 'none':
-            return HideWindowAction()
+            return Action.HideWindow()
 
-        ret = os.system(f"bash -c 'timeout 8s bluetoothctl {data}'")
-
-        prompt = f"{data.split()[0].capitalize()}ed Successfully" if ret == 0 else f"{data.split()[0].capitalize()}ion Failed"
+        ret = os.system(f"timeout 8s bluetoothctl {data}")
+        result_msg = f"{data.split()[0].capitalize()}ed Successfully" if ret == 0 else f"{data.split()[0].capitalize()}ion Failed"
 
         return [
             Result(
-                icon='images/icon.png',
-                name=prompt,
-                on_enter=HideWindowAction()
+                name=result_msg,
+                icon="images/icon.png",
+                on_enter=Action.HideWindow()
             )
         ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     BluetoothQC().run()
