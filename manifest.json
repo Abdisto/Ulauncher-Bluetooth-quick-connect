@@ -1,16 +1,18 @@
 {
-  "api_version": "3.0",
-  "name": "Bluetooth Quick Connect",
+  "required_api_version": "^2.0.0",
+  "name": "Bluetooth quick connect",
   "description": "Quickly connect/disconnect to predefined Bluetooth devices",
-  "authors": "Magnus Wiik Eckhoff [Abdist fork]",
+  "developer_name": "Magnus Wiik Eckhoff [Abdist fork]",
   "icon": "images/icon.png",
-  "instructions": "This extension needs <code>bluetoothctl</code> and a working Bluetooth setup. Ensure that trusted devices are already paired and visible to <code>bluetoothctl</code>.",
+  "options": {
+    "query_debounce": 0.05
+  },
   "preferences": [
     {
-      "id": "bt",
+      "id": "kw",
       "type": "keyword",
-      "name": "Bluetooth Manager",
-      "description": "Quickly connect to predefined Bluetooth devices",
+      "name": "Bluetooth manager",
+      "description": "Quickly connect to predefined bluetooth devices",
       "default_value": "bt"
     }
   ]
