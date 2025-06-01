@@ -1,146 +1,100 @@
 import json
 import logging
 import os
-from rapidfuzz import process
-from time import sleep
 import subprocess
-from ulauncher.api.client.Extension import Extension
-from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
-from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
-from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
-from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
-from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
+
+from rapidfuzz import process
+from ulauncher.api import Extension, Result
+from ulauncher.api.actions import RunScriptAction, ExtensionCustomAction, HideWindowAction
 
 logger = logging.getLogger(__name__)
 
 DEVICE_ICONS = {
-#    'audio-headset': 'headphones',
-#    'headset': 'headphones',
-#    'keyboard': 'keyboard',
-#    'mouse': 'mouse',
     'input-gaming': 'gamepad',
-#    'phone': 'phone',
 }
 
 class BluetoothQC(Extension):
-
     def __init__(self):
-        super(BluetoothQC, self).__init__()
-        self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
-        self.subscribe(ItemEnterEvent, ItemEnterEventListener())
+        super().__init__()
 
-class KeywordQueryEventListener(EventListener):
-
-    def on_event(self, event, extension):
+    def on_input(self, input_text: str, trigger_id: str):
         items = []
         devices = {}
-        query = event.get_argument()
-        logger.info('preferences %s' % json.dumps(extension.preferences))
 
         bluetooth_list = subprocess.check_output(
             "bash -c 'timeout 5s bluetoothctl devices Paired'",
-             shell=True,
-             text=True
+            shell=True,
+            text=True
         )
         connected_device_list = subprocess.check_output(
             "bash -c 'timeout 5s bluetoothctl devices Connected'",
             shell=True,
             text=True
         )
-        cleaned_device_dict = {}
-
-        # logger.warning(f"\n\n{bluetooth_list}\n\n")
 
         for device in bluetooth_list.strip().splitlines():
-            # logger.warning(f"\n\n{device}\n\n")
-            device_name = ' '.join(device.split(' ')[2:])
+            device_name = ' '.join(device.split(' ')[2:]).capitalize()
             device_mac = device.split(' ')[1]
-            device_type = subprocess.check_output(
-                f"bash -c 'timeout 5s bluetoothctl info {device_mac}' | grep Icon:",
-                shell=True,
-                text=True
-            ).split(':')[1].strip()
-            if device not in connected_device_list:
-                devices[device_name] = device_mac, device_type, 'Connect to'
-            else:
-                devices[device_name] = device_mac, device_type, 'Disconnect from'
+            try:
+                device_type = subprocess.check_output(
+                    f"bash -c 'timeout 5s bluetoothctl info {device_mac}' | grep Icon:",
+                    shell=True,
+                    text=True
+                ).split(':')[1].strip()
+            except Exception:
+                device_type = 'unknown'
 
-        # logger.warning(f"\n\n{devices}\n\n")
+            is_connected = device in connected_device_list
+            action_label = 'Select to Disconnect' if is_connected else 'Select to Connect'
+            devices[device_name] = (device_mac, device_type, action_label)
 
-        # get devices from preferences
-        #if extension.preferences.get('device_list') is not None:
-        #    device_list = extension.preferences['device_list'].split(',')
-        #    for d in device_list:
-        #        if len(d) > 18:
-        #            devices[d[-(len(d)-18):].strip()] = d.strip()[0:18], d[-(len(d)-18):].strip().split(' ')[0]
+        if not devices:
+            return [
+                Result(
+                    icon='images/disconnect.png',
+                    name="No devices found",
+                    description="Either bluetoothctl is missing or you haven't connected any devices yet",
+                    on_enter=ExtensionCustomAction("none", keep_app_open=True)
+                )
+            ]
 
-            # give user feedback if no devices has been specified
-        if len(devices) == 0:
-            items.append(ExtensionResultItem(icon='images/disconnect.png',
-                                             name="No devices specified",
-                                             description="Add them in settings->extentions->BT_manager->device list",
-                                             on_enter=ExtensionCustomAction("none", keep_app_open=True)))
-            return RenderResultListAction(items)
-
-        sorted_keys = process.extract(query, devices.keys(), limit=None)
+        # Use fuzzy search
+        sorted_keys = process.extract(input_text, devices.keys(), limit=None)
         sorted_devices = {k: devices[k] for k, score, _ in sorted_keys}
 
-        if sorted_devices != {}:
-            devices = sorted_devices
+        results = []
+        for key, (mac, dev_type, label) in sorted_devices.items():
+            action = 'disconnect' if 'Disconnect' in label else 'connect'
+            data = f"{action} {mac}"
 
+            icon_name = DEVICE_ICONS.get(dev_type, "disconnect" if action == 'disconnect' else "connect")
+            if action == 'disconnect' and icon_name != "disconnect":
+                icon_name += "_disconnect"
 
-        for i in range(len(devices)):
-            key = list(devices.keys())[i]
-            data = ('connect ' if devices[key][2] == 'Connect to' else 'disconnect ') + devices[key][0]
-            if devices[key][2] == 'Connect to':
-                icon_name = DEVICE_ICONS.get(devices[key][1], "connect")
-            else:
-                icon_name = DEVICE_ICONS.get(devices[key][1], "disconnect")
-                if icon_name != "disconnect":
-                    icon_name += "_disconnect"
-            items.append(ExtensionResultItem(icon=f'images/{icon_name}.png',
-                                             name=f"{devices[key][2]} %s" % key,
-                                             on_enter=ExtensionCustomAction(data, keep_app_open=True)))
+            results.append(Result(
+                icon=f'images/{icon_name}.png',
+                name=f"{key} | {label}",
+                description=mac,
+                on_enter=ExtensionCustomAction(data, keep_app_open=True)
+            ))
 
-        # connect options
-        #for i in range(len(devices)):
-        #    key = list(devices.keys())[i]
-        #    data = 'connect ' + devices[key][0]
-        #    items.append(ExtensionResultItem(icon=f'images/{devices[key][1] if devices[key][1] in DEVICE_ICONS else 'connect'}.png',
-        #                                     name="Connect to %s" % key.split(' ', 1)[1] if devices[key][1] in DEVICE_ICONS else "Connect to %s" % key,
-        #                                     on_enter=ExtensionCustomAction(data, keep_app_open=True)))
+        return results
 
-        # disconnect options
-        #for i in range(len(devices)):
-        #    key = list(devices.keys())[i]
-        #    data = 'disconnect ' + devices[key][0]
-        #    items.append(ExtensionResultItem(icon=f'images/{devices[key][1] + '_disconnect' if devices[key][1] in DEVICE_ICONS else 'disconnect'}.png',
-        #                                     name="Disconnect from %s" % key.split(' ', 1)[1] if devices[key][1] in DEVICE_ICONS else "Disconnect from %s" % key,
-        #                                     on_enter=ExtensionCustomAction(data, keep_app_open=True)))
-
-        return RenderResultListAction(items)
-
-
-class ItemEnterEventListener(EventListener):
-
-    def on_event(self, event, extension):
-        data = event.get_data()
-        if (data == 'none'):
+    def on_item_enter(self, data):
+        if data == 'none':
             return HideWindowAction()
 
-        # connect to device
-        ret = os.system(
-            f"bash -c 'timeout 8s bluetoothctl {data}'")
+        ret = os.system(f"bash -c 'timeout 8s bluetoothctl {data}'")
 
-        if ret == 0:
-            prompt = data.split()[0] + "ed Successfully"
-        else:
-            prompt = data.split()[0] + "ion Failed"
+        prompt = f"{data.split()[0].capitalize()}ed Successfully" if ret == 0 else f"{data.split()[0].capitalize()}ion Failed"
 
-        return RenderResultListAction([ExtensionResultItem(icon='images/icon.png',
-                                                           name=prompt,
-                                                           on_enter=HideWindowAction())])
+        return [
+            Result(
+                icon='images/icon.png',
+                name=prompt,
+                on_enter=HideWindowAction()
+            )
+        ]
 
 
 if __name__ == '__main__':
