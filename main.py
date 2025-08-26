@@ -43,7 +43,8 @@ class KeywordQueryEventListener(EventListener):
              shell=True,
              text=True
         )
-        cleaned_bluetooth_list = bluetooth_list[0:bluetooth_list.find("[\x1b[0;92mNEW\x1b[0m]")]
+        delim = bluetooth_list.find("[\x1b[0;92mNEW\x1b[0m]") if bluetooth_list.find("[\x1b[0;92mNEW\x1b[0m]") else len(bluetooth_list) 
+        cleaned_bluetooth_list = bluetooth_list[0:delim]
         connected_device_list = subprocess.check_output(
             "bash -c 'timeout 5s bluetoothctl devices Connected'",
             shell=True,
