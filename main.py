@@ -43,6 +43,7 @@ class KeywordQueryEventListener(EventListener):
              shell=True,
              text=True
         )
+        cleaned_bluetooth_list = bluetooth_list[0:bluetooth_list.find("[\x1b[0;92mNEW\x1b[0m]")]
         connected_device_list = subprocess.check_output(
             "bash -c 'timeout 5s bluetoothctl devices Connected'",
             shell=True,
@@ -50,7 +51,7 @@ class KeywordQueryEventListener(EventListener):
         )
         cleaned_device_dict = {}
 
-        for device in bluetooth_list.strip().splitlines():
+        for device in cleaned_bluetooth_list.strip().splitlines():
             device_name = ' '.join(device.split(' ')[2:]).capitalize()
             device_mac = device.split(' ')[1]
             device_type = subprocess.check_output(
